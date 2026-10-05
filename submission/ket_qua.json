@@ -1,0 +1,85 @@
+{
+  "progress": {
+    "box_iou": "ok",
+    "nms": "ok",
+    "batched_nms": "ok",
+    "average_precision": "ok",
+    "mask_iou": "ok",
+    "polygon_to_mask": "ok",
+    "mask_to_yolo_seg": "ok",
+    "autolabel": "ok",
+    "oks": "ok",
+    "joint_angle": "ok",
+    "FLIP_IDX": "ok"
+  },
+  "latency": [
+    {
+      "Cấu hình": "one-to-many + NMS, conf 0.25",
+      "preprocess (ms)": 1.77,
+      "inference (ms)": 9.61,
+      "postprocess (ms)": 1.31,
+      "số box": 5
+    },
+    {
+      "Cấu hình": "one-to-many + NMS, conf 0.001",
+      "preprocess (ms)": 1.77,
+      "inference (ms)": 9.54,
+      "postprocess (ms)": 1.52,
+      "số box": 203
+    },
+    {
+      "Cấu hình": "one-to-one NMS-free, conf 0.25",
+      "preprocess (ms)": 1.8,
+      "inference (ms)": 10.38,
+      "postprocess (ms)": 0.49,
+      "số box": 5
+    },
+    {
+      "Cấu hình": "one-to-one NMS-free, conf 0.001",
+      "preprocess (ms)": 1.75,
+      "inference (ms)": 10.03,
+      "postprocess (ms)": 0.47,
+      "số box": 204
+    }
+  ],
+  "result_4b": {
+    "flip_idx": "giải phẫu",
+    "epochs": 40,
+    "imgsz": 640,
+    "Box mAP50-95": 0.9139528301886793,
+    "Pose mAP50": 0.995,
+    "Pose mAP50-95": 0.4357436046254029,
+    "train (phút)": 3.8
+  },
+  "result_4c": [
+    {
+      "Model": "flip_idx giải phẫu",
+      "Pose mAP50-95 — val gốc": 0.4357436046254029,
+      "Pose mAP50-95 — val lật gương": 0.4253492273151239
+    },
+    {
+      "Model": "flip_idx đồng nhất",
+      "Pose mAP50-95 — val gốc": 0.41472441732311605,
+      "Pose mAP50-95 — val lật gương": 0.2751269061288308
+    }
+  ],
+  "answers": {
+    "Q1": "(a) Với ảnh letterbox 640×480, ba feature map có kích thước 80×60, 40×30 và 20×15, tức 6.300 dự đoán thô; ảnh 640×640 có 8.400 vì chiều cao tạo thêm vị trí dự đoán ở mỗi stride. (b) Nhãn gốc là cxcywh (tâm và kích thước) nhưng bị đọc thành xywh (góc trên-trái và kích thước), nên tâm bị hiểu nhầm thành góc trên-trái và box lệch phải w/2, xuống dưới h/2.",
+    "Q2": "Trong bảng lần chạy này, chênh lệch lớn nhất là ở postprocess tại conf=0.001: 1.52 ms với one-to-many + NMS và 0.47 ms với one-to-one (NMS-free). Ở conf 0.001, hai head trả về lần lượt 203 và 204 box. Conf thấp và cảnh đông tạo nhiều ứng viên hơn cho one-to-many, làm NMS phải xử lý thêm các box trùng; lợi ích NMS-free vì vậy rõ hơn. Trên CPU/NPU, bỏ bước NMS cũng tránh chi phí đồng bộ và một phép hậu xử lý thường ít song song hoá hơn inference của model.",
+    "Q3": "(a) Với IoU 0.75 lớn hơn ngưỡng 0.7, NMS giữ box có confidence cao hơn và loại box còn lại; nếu đó là hai công nhân thật thì mất một người. Tăng ngưỡng giữ được nhiều người đứng sát nhau nhưng để sót duplicate, còn giảm ngưỡng dọn duplicate mạnh hơn nhưng dễ xoá nhầm người gần nhau. (b) Head one-to-many cung cấp nhiều vị trí học cho mỗi object và tín hiệu huấn luyện dày; head one-to-one hỗ trợ suy luận không cần NMS. YOLO26 giữ cả hai head để kết hợp lợi ích huấn luyện với suy luận gọn.",
+    "Q4": "(a) Semantic segmentation chỉ gán class cho từng pixel: hai người đứng sát nhau có thể nối thành một vùng nên đếm thiếu, còn một người bị che khuất hoặc mask bị đứt có thể tạo nhiều vùng rời nên đếm thừa. Panoptic segmentation kết hợp class của từng pixel với instance ID riêng cho mỗi vật thể như từng người, nên phân biệt được các cá thể. (b) Bản đồ gán phần lớn xe buýt vào class train; đây là nhầm lẫn ngữ nghĩa của model do hình ảnh/đặc trưng xe buýt bị phân loại nhầm, không phải lỗi đếm connected components.",
+    "Q5": "(a) YOLO26-seg dùng prototype ở lưới không gian độ phân giải thấp dùng chung, nên vật thể nhỏ chỉ chiếm ít ô và biên của nó dễ thô; Mask R-CNN xuất mask cố định 28×28 cho mỗi RoI, nên vật thể lớn bị giới hạn bởi lưới 28×28 và biên có thể thô khi phóng về ảnh gốc. Cả hai đều chịu ảnh hưởng của độ phân giải và kích thước object nhưng theo cách khác nhau. (b) Ghép tham lam có thể cho nhiều mask YOLO cùng chọn một mask Mask R-CNN tốt nhất, khiến các mask còn lại không được ghép duy nhất; Hungarian matching tối đa tổng IoU với ràng buộc một-một.",
+    "Q6": "(a) Điểm A ở tâm box cho mask gần như cả người (IoU khoảng 0.99), còn điểm B ở 80% chiều cao có thể chỉ chọn một mảnh nhỏ như chân (IoU khoảng 0.00). Một điểm dương không xác định rõ ranh giới hay toàn bộ object cần lấy; box cung cấp vùng và biên gợi ý rõ hơn nên ổn định, an toàn hơn để tạo nhãn tự động. (b) Dùng SAM trực tiếp khi cần mask chất lượng cao cho số lượng nhỏ, class mới hoặc quy trình tương tác mà latency/chi phí chấp nhận được. Dùng SAM để tạo và sửa nhãn rồi train YOLO26-seg khi class đã cố định, cần xử lý nhiều ảnh nhanh hoặc triển khai trên thiết bị hạn chế tài nguyên.",
+    "Q7": "Khi đặt KP_THR = -100, các điểm gối và mắt cá vẫn được vẽ tại tọa độ mà heatmap chọn, kể cả khi chúng nằm ngoài mép dưới khung ảnh. Argmax luôn trả về vị trí lớn nhất trong heatmap nhưng không bảo đảm vị trí đó hợp lý hay đáng tin; confidence/logit của từng keypoint cần đi kèm để lọc các dự đoán yếu trước khi dùng.",
+    "Q8": "Theo đồ thị, OKS của người 40×80 xuống dưới 0.5 ở khoảng 8 px sai số, người 100×200 ở khoảng 18 px và người 250×500 ở khoảng 44 px; người lớn chịu được sai số pixel lớn hơn vì diện tích chuẩn hóa lớn hơn. Sigma mắt nhỏ vì vị trí mắt thường được gán nhãn nhất quán và cần định vị chính xác; sigma hông lớn vì vị trí giải phẫu rộng hơn và khó thống nhất hơn. Với người cao chỉ 80 px, vài pixel sai lệch đã là phần đáng kể của cơ thể, nên OKS giảm mạnh—đặc biệt ở keypoint có sigma nhỏ như mắt—và ngưỡng confidence/độ phân giải cần được cân nhắc.",
+    "Q9": "(a) Báo nhầm: người cúi nhặt đồ, ngồi hoặc làm việc với thân gần ngang; bỏ sót: người ngã nhưng bị che khuất, keypoint vai/hông thiếu tin cậy, hoặc tư thế ngã chưa vượt 60°. (b) YOLO-pose chủ yếu học người ở tư thế thẳng đứng; khi xoay cả ảnh 90°, người và bối cảnh có hướng khác phân phối huấn luyện, nên detector bỏ sót một số người (trong ví dụ tham khảo còn 3 người). (c) Hệ thống thực tế cần theo dõi người qua nhiều khung hình, xác nhận tư thế/ngã kéo dài theo thời gian, kiểm tra confidence và xử lý che khuất, rồi mới phát cảnh báo để giảm báo động giả và bỏ sót.",
+    "Q10": "Không nhất thiết mAP trên val giảm rõ rệt: cả train và val đều chỉ có hổ quay phải, nên metric không kiểm tra được hướng đối diện và có thể vẫn cao trên phân phối đó, dù augmentation lật với flip_idx sai tạo nhãn trái/phải không nhất quán. Bug lộ ra khi triển khai gặp hổ quay trái/ảnh gương, hoặc khi ứng dụng cần xác định đúng chân trái/phải theo giải phẫu; khi ấy keypoint hai bên có thể bị đổi nhãn.",
+    "Q11": "Trong sáu ảnh lỗi, các bàn chân có sai số lớn nhất (đặc biệt chân trước), và hai chân thường chồng lấp hoặc bị che nên điểm trái/phải dễ lệch; các điểm thân và đầu ổn định hơn. Tôi sẽ bổ sung ảnh đa dạng tư thế đi/chạy và tình huống chân bắt chéo, rà soát nhãn trái/phải, đồng thời thêm crop chân/bàn chân độ phân giải cao với nhãn nhất quán để giảm lỗi định vị các điểm nhỏ.",
+    "Q12": "SIGMA_TIGER = 1/12 là quy ước mặc định tiện dụng cho dataset không có 17 keypoint COCO, nhưng không phản ánh độ khó khác nhau giữa các điểm như mũi và gốc đuôi. Tôi sẽ lấy một tập ảnh đại diện, nhờ nhiều người gán nhãn độc lập từng keypoint, đo độ lệch giữa các nhãn sau khi chuẩn hóa theo kích thước object, rồi dùng độ phân tán bền vững của từng keypoint để ước lượng sigma riêng. Sau đó kiểm tra các sigma trên một validation set độc lập để bảo đảm OKS phạt đúng mức sai số có ý nghĩa với bài toán."
+  },
+  "env": {
+    "device": "cuda",
+    "torch": "2.11.0+cu128",
+    "ultralytics": "8.4.171"
+  }
+}
